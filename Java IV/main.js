@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { contain } from 'three/src/extras/TextureUtils.js';
 
 const scene = new THREE.Scene();
 
@@ -27,3 +28,11 @@ const box1Mesh = new THREE.Mesh(boxGeometry, box1Material);
 box1Mesh.position.set(2, 0, 0);
 scene.add(box1Mesh);
 
+const light = new THREE.AmbientLight(0xffffff, 1);
+scene.add(light);
+
+const container = document.getElementById('scene1');
+const renderer = new THREE.WebGLRenderer();
+container.appendChild(renderer.domElement);
+
+renderer.render(scene, camera);
