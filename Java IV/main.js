@@ -42,11 +42,21 @@ const light = new THREE.DirectionalLight(0xffffff, 1);
 light.position.set(5, 5, 5);
 scene.add(light);
 
-const pointLight = new THREE.PointLight(0xff0000, 0.8, 25  );
-pointLight.position.set(-3, -3, 3);
+const pointLight = new THREE.PointLight(0xff0000, 5, 100  );
+pointLight.position.set(-1, -1, 1);
 const pointLightHelper = new THREE.PointLightHelper(pointLight);
 scene.add(pointLight);
 scene.add(pointLightHelper);
+
+const spotLight = new THREE.SpotLight(0x00ff00, 5);
+spotLight.position.set(0, 5, 0);
+spotLight.angle = Math.PI / 6;
+spotLight.penumbra = 0.2;
+spotLight.decay = 2;
+spotLight.distance = 50;
+const spotLightHelper = new THREE.SpotLightHelper(spotLight);
+scene.add(spotLight);
+scene.add(spotLightHelper);
 
 const container = document.getElementById('scene1');
 const renderer = new THREE.WebGLRenderer();
