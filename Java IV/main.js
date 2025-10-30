@@ -4,13 +4,23 @@ import { contain } from 'three/src/extras/TextureUtils.js';
 
 const scene = new THREE.Scene();
 
-const camera = new THREE.PerspectiveCamera(
-    75, 
-    window.innerWidth / window.innerHeight, 
-    0.1, 
+// const camera = new THREE.PerspectiveCamera(
+//     75, 
+//     window.innerWidth / window.innerHeight, 
+//     0.1, 
+//     1000
+// )
+const camera = new THREE.OrthographicCamera(
+    window.innerWidth / -200,
+    window.innerWidth / 200,
+    window.innerHeight / 200,
+    window.innerHeight / -200,
+    0.1,
     1000
-)
-camera.position.set(0, 0, 5);
+);
+
+camera.position.set(0, 2, 5);
+camera.lookAt(0, 0, 0);
 
 const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
 const boxMaterial = new THREE.MeshBasicMaterial({ 
