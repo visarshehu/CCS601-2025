@@ -13,11 +13,7 @@ camera.position.z = 5;
 const textureLoader = new THREE.TextureLoader();
 const earthTexture = textureLoader.load('earth.jpg');
 const earthNormalMap = textureLoader.load('EarthNormal.png');
-
-earthTexture.wrapS = THREE.RepeatWrapping;
-earthTexture.wrapT = THREE.RepeatWrapping;
-earthNormalMap.wrapS = THREE.RepeatWrapping;
-earthNormalMap.wrapT = THREE.RepeatWrapping;
+ 
 
 const sphereGeometry = new THREE.SphereGeometry(1.5, 64, 64);
 const earthMaterial = new THREE.MeshStandardMaterial({
