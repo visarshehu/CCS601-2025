@@ -3,7 +3,7 @@ import { SceneManager } from './SceneManager.js';
 import { InputManager } from './InputManager.js';
 import { InteractionManager } from './InteractionManager.js';
 
-const sceneMgr = new SceneManager();
+
 const inputMgr = new InputManager(sceneMgr.getDomElement());
 const interactionMgr = new InteractionManager(sceneMgr, inputMgr);
 

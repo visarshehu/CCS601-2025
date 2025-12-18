@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magic Window - AR.js HIRO Marker</title>
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        .info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            z-index: 100;
+            max-width: 300px;
+        }
+        .info h3 {
+            margin-top: 0;
+            color: #00d4ff;
+        }
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+            text-align: center;
+        }
+        .controls button {
+            background: #4ecdc4;
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            margin: 0 5px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .controls button:hover {
+            background: #45b7d1;
+        }
+        .marker-guide {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 1000;
+            text-align: center;
+            max-width: 400px;
+        }
+        .marker-guide img {
+            width: 150px;
+            height: 150px;
+            background: white;
+            border: 2px solid #333;
+            margin: 10px 0;
+        }
+        .marker-guide button {
+            background: #00ff00;
+            border: none;
+            color: black;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+        .status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+        }
+        .status.detected {
+            background: rgba(0,128,0,0.8);
+        }
+        .status.lost {
+            background: rgba(128,0,0,0.8);
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h3>AR me Marker HIRO</h3>
+        <p><strong>Hapi 1:</strong> Lejoni qasjen në kamerë</p>
+        <p><strong>Hapi 2:</strong> Printoni marker-in HIRO</p>
+        <p><strong>Hapi 3:</strong> Drejtoni kamerën tek markeri</p>
+        <p><strong>Rezultati:</strong> Objektet 3D do të shfaqen mbi marker</p>
+    </div>
+
+    <div class="status" id="arStatus">
+        🔍 Duke kërkuar marker...
+    </div>
+
+    <div class="controls">
+        <button onclick="switchObject()">Ndrysho Objektin</button>
+        <button onclick="toggleAnimation()">Play/Pause</button>
+        <button onclick="showMarkerGuide()">Shfaq Marker</button>
+        <button onclick="resetAR()">Reset AR</button>
+    </div>
+
+    <div id="markerGuide" class="marker-guide" style="display: block;">
+        <h3>🎯 Marker-i HIRO</h3>
+        <p>Për të përdorur AR-në, ju duhet marker-i HIRO:</p>
+        <div style="width: 150px; height: 150px; background: white; border: 2px solid #333; margin: 10px auto; display: flex; align-items: center; justify-content: center; font-size: 14px; color: black;">
+            <div style="text-align: center;">
+                <div style="font-weight: bold; font-size: 20px;">HIRO</div>
+                <div style="margin-top: 5px; font-size: 12px;">Marker Pattern</div>
+                <div style="border: 1px solid black; width: 80px; height: 80px; margin: 5px auto; display: flex; align-items: center; justify-content: center;">
+                    <div style="background: black; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px;">AR</div>
+                </div>
+            </div>
+        </div>
+        <p><strong>Udhëzime:</strong></p>
+        <ol style="text-align: left;">
+            <li>Printoni këtë marker në një fletë të bardhë</li>
+            <li>Sigurohuni që të jetë i qartë dhe i sheshtë</li>
+            <li>Drejtoni kamerën tek markeri</li>
+            <li>Mbajeni kamerën stabil</li>
+        </ol>
+        <button onclick="hideMarkerGuide()">Filloj AR</button>
+    </div>
+
+    <!-- A-Frame scene me AR.js -->
+    <a-scene 
+        embedded 
+        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+        vr-mode-ui="enabled: false">
+        
+        <a-assets>
+            <!-- Audio për efekte -->
+            <audio id="detectedSound" preload="auto">
+                <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEcBDuZ3fXKdSgELIHR9N2ITggTZLrx6aFOEQxOqObxs2EbBjiS2fDJeBEE" type="audio/wav">
+            </audio>
+        </a-assets>
+
+        <!-- Marker HIRO -->
+        <a-marker 
+            id="hiro-marker"
+            preset="hiro" 
+            cursor="rayOrigin: mouse"
+            markerhandler>
+            
+            <!-- Objekti i parë - Kubi me animacion -->
+            <a-entity id="arObject1" visible="true">
+                <a-box 
+                    id="arCube"
+                    position="0 0.5 0" 
+                    width="1" height="1" depth="1" 
+                    color="#ff6b6b" 
+                    material="metalness: 0.3; roughness: 0.4"
+                    animation="property: rotation; to: 360 360 0; dur: 6000; loop: true; easing: linear"
+                    animation__bounce="property: position; to: 0 1.5 0; dur: 2000; direction: alternate; loop: true; easing: easeInOutQuad">
+                    
+                    <!-- Teksti mbi kub -->
+                    <a-text 
+                        value="AR Cube!" 
+                        position="0 1.2 0" 
+                        align="center" 
+                        color="#ffffff" 
+                        width="6"
+                        look-at="[camera]">
+                    </a-text>
+                </a-box>
+
+                <!-- Rrethimi i kubit me partikuj -->
+                <a-entity id="particles">
+                    <a-sphere position="1.2 0.5 0" radius="0.05" color="#00ff00"
+                              animation="property: rotation; to: 0 360 0; dur: 2000; loop: true; easing: linear"></a-sphere>
+                    <a-sphere position="0 0.5 1.2" radius="0.05" color="#0000ff"
+                              animation="property: rotation; to: 0 360 0; dur: 2000; loop: true; easing: linear; delay: 500"></a-sphere>
+                    <a-sphere position="-1.2 0.5 0" radius="0.05" color="#ffff00"
+                              animation="property: rotation; to: 0 360 0; dur: 2000; loop: true; easing: linear; delay: 1000"></a-sphere>
+                    <a-sphere position="0 0.5 -1.2" radius="0.05" color="#ff00ff"
+                              animation="property: rotation; to: 0 360 0; dur: 2000; loop: true; easing: linear; delay: 1500"></a-sphere>
+                </a-entity>
+            </a-entity>
+
+            <!-- Objekti i dytë - Robot i thjeshtë -->
+            <a-entity id="arObject2" visible="false">
+                <!-- Trupi i robotit -->
+                <a-cylinder position="0 0.5 0" height="1" radius="0.3" color="#4ecdc4"
+                           animation__float="property: position; to: 0 1 0; dur: 3000; direction: alternate; loop: true; easing: easeInOutSine">
+                </a-cylinder>
+                <!-- Koka -->
+                <a-sphere position="0 1.2 0" radius="0.2" color="#ffe66d"
+                         animation__nod="property: rotation; to: 15 0 0; dur: 1500; direction: alternate; loop: true">
+                </a-sphere>
+                <!-- Sytë -->
+                <a-sphere position="-0.08 1.2 0.15" radius="0.03" color="#ff0000"></a-sphere>
+                <a-sphere position="0.08 1.2 0.15" radius="0.03" color="#ff0000"
+                         animation__blink="property: scale; to: 1 0.1 1; dur: 200; direction: alternate; loop: true; delay: 2000">
+                </a-sphere>
+                <!-- Krahët -->
+                <a-cylinder position="-0.4 0.7 0" height="0.6" radius="0.08" color="#a8e6cf"
+                           animation__wave="property: rotation; to: 45 0 0; dur: 1000; direction: alternate; loop: true">
+                </a-cylinder>
+                <a-cylinder position="0.4 0.7 0" height="0.6" radius="0.08" color="#a8e6cf"
+                           animation__wave="property: rotation; to: -45 0 0; dur: 1000; direction: alternate; loop: true; delay: 500">
+                </a-cylinder>
+                
+                <!-- Teksti -->
+                <a-text 
+                    value="Hello AR!" 
+                    position="0 1.8 0" 
+                    align="center" 
+                    color="#333333" 
+                    width="4"
+                    look-at="[camera]">
+                </a-text>
+            </a-entity>
+
+            <!-- Objekti i tretë - Sistema diellore -->
+            <a-entity id="arObject3" visible="false">
+                <!-- Dielli -->
+                <a-sphere position="0 0.5 0" radius="0.3" color="#ffaa00" 
+                         material="emissive: #ffaa00; emissiveIntensity: 0.3"
+                         animation="property: rotation; to: 360 0 0; dur: 4000; loop: true; easing: linear">
+                </a-sphere>
+                
+                <!-- Toka -->
+                <a-sphere position="1 0.5 0" radius="0.08" color="#4ecdc4"
+                         animation="property: rotation; to: 0 360 0; dur: 2000; loop: true; easing: linear">
+                    <!-- Hëna -->
+                    <a-sphere position="0.3 0 0" radius="0.03" color="#cccccc"
+                             animation="property: rotation; to: 0 360 0; dur: 1000; loop: true; easing: linear">
+                    </a-sphere>
+                </a-sphere>
+                
+                <!-- Marsi -->
+                <a-sphere position="1.5 0.5 0" radius="0.06" color="#ff6b6b"
+                         animation="property: rotation; to: 0 360 0; dur: 3000; loop: true; easing: linear">
+                </a-sphere>
+
+                <!-- Orbitat -->
+                <a-ring position="0 0.5 0" radius-inner="0.95" radius-outer="1.05" color="#ffffff"
+                       material="opacity: 0.3; transparent: true" rotation="-90 0 0">
+                </a-ring>
+                <a-ring position="0 0.5 0" radius-inner="1.45" radius-outer="1.55" color="#ffffff"
+                       material="opacity: 0.3; transparent: true" rotation="-90 0 0">
+                </a-ring>
+                
+                <!-- Teksti -->
+                <a-text 
+                    value="Sistema Diellore" 
+                    position="0 1.5 0" 
+                    align="center" 
+                    color="#ffffff" 
+                    width="3"
+                    look-at="[camera]">
+                </a-text>
+            </a-entity>
+        </a-marker>
+
+        <!-- Kamera AR -->
+        <a-entity camera look-controls-enabled="false" wasd-controls-enabled="false"></a-entity>
+    </a-scene>
+
+    <script>
+        let currentObject = 0;
+        let animationPaused = false;
+        const objects = ['arObject1', 'arObject2', 'arObject3'];
+        const objectNames = ['Kubi Magjik', 'Robot AR', 'Sistema Diellore'];
+        let markerDetected = false;
+
+        // Event listeners për marker detection
+        document.addEventListener('DOMContentLoaded', function() {
+            const marker = document.querySelector('#hiro-marker');
+            const statusElement = document.getElementById('arStatus');
+            
+            marker.addEventListener('markerFound', function() {
+                console.log('HIRO marker u gjet!');
+                markerDetected = true;
+                statusElement.innerHTML = '✅ Marker u gjet!';
+                statusElement.className = 'status detected';
+                
+                // Luaj tingullin
+                const sound = document.getElementById('detectedSound');
+                if (sound) {
+                    sound.play().catch(e => console.log('Audio play failed:', e));
+                }
+
+                // Animacioni i shfaqjes
+                const currentObj = document.getElementById(objects[currentObject]);
+                if (currentObj) {
+                    currentObj.setAttribute('animation__appear', {
+                        property: 'scale',
+                        from: '0.1 0.1 0.1',
+                        to: '1 1 1',
+                        dur: 500,
+                        easing: 'easeOutBack'
+                    });
+                }
+            });
+
+            marker.addEventListener('markerLost', function() {
+                console.log('HIRO marker u humbis');
+                markerDetected = false;
+                statusElement.innerHTML = '❌ Marker u humbis';
+                statusElement.className = 'status lost';
+            });
+        });
+
+        function switchObject() {
+            if (!markerDetected) {
+                alert('Së pari gjeni marker-in HIRO!');
+                return;
+            }
+
+            // Fshih objektin aktual
+            const currentObj = document.getElementById(objects[currentObject]);
+            if (currentObj) {
+                currentObj.setAttribute('visible', 'false');
+            }
+
+            // Kalo në objektin tjetër
+            currentObject = (currentObject + 1) % objects.length;
+
+            // Shfaq objektin e ri
+            const newObj = document.getElementById(objects[currentObject]);
+            if (newObj) {
+                newObj.setAttribute('visible', 'true');
+                newObj.setAttribute('animation__switch', {
+                    property: 'scale',
+                    from: '0.1 0.1 0.1',
+                    to: '1 1 1',
+                    dur: 500,
+                    easing: 'easeOutElastic'
+                });
+            }
+
+            console.log(`Ndryshuar në: ${objectNames[currentObject]}`);
+        }
+
+        function toggleAnimation() {
+            animationPaused = !animationPaused;
+            
+            const currentObj = document.getElementById(objects[currentObject]);
+            if (currentObj) {
+                const animatedElements = currentObj.querySelectorAll('[animation], [animation__float], [animation__bounce], [animation__nod], [animation__blink], [animation__wave]');
+                
+                animatedElements.forEach(element => {
+                    const animations = element.components;
+                    Object.keys(animations).forEach(key => {
+                        if (key.startsWith('animation')) {
+                            if (animationPaused) {
+                                animations[key].pauseAnimation();
+                            } else {
+                                animations[key].resumeAnimation();
+                            }
+                        }
+                    });
+                });
+            }
+
+            console.log(animationPaused ? 'Animacionet u ndaluan' : 'Animacionet u rinisën');
+        }
+
+        function showMarkerGuide() {
+            document.getElementById('markerGuide').style.display = 'block';
+        }
+
+        function hideMarkerGuide() {
+            document.getElementById('markerGuide').style.display = 'none';
+        }
+
+        function resetAR() {
+            // Reset në objektin e parë
+            objects.forEach((objId, index) => {
+                const obj = document.getElementById(objId);
+                if (obj) {
+                    obj.setAttribute('visible', index === 0);
+                    obj.setAttribute('scale', '1 1 1');
+                }
+            });
+            
+            currentObject = 0;
+            animationPaused = false;
+            
+            console.log('AR u rivendos');
+        }
+
+        // Custom component për marker handling
+        AFRAME.registerComponent('markerhandler', {
+            init: function () {
+                this.el.addEventListener('markerFound', function() {
+                    console.log('Custom marker handler: marker found');
+                });
+                
+                this.el.addEventListener('markerLost', function() {
+                    console.log('Custom marker handler: marker lost');
+                });
+            }
+        });
+
+        // Error handling për webcam
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                if (!document.querySelector('video')) {
+                    console.warn('Webcam nuk mund të aksesohej');
+                    const statusElement = document.getElementById('arStatus');
+                    statusElement.innerHTML = '⚠️ Probleme me kamerën';
+                    statusElement.className = 'status lost';
+                }
+            }, 3000);
+        });
+
+        // Instructions for mobile
+        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+            document.addEventListener('DOMContentLoaded', function() {
+                const info = document.querySelector('.info');
+                info.innerHTML += '<p><strong>Mobil:</strong> Mbani telefonin horizontalisht për performancë më të mirë</p>';
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import Assets - A-Frame GLTF Loading</title>
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        .info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            z-index: 100;
+            max-width: 350px;
+        }
+        .info h3 {
+            margin-top: 0;
+            color: #00d4ff;
+        }
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+        }
+        .controls button {
+            background: #4ecdc4;
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            margin: 0 5px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .controls button:hover {
+            background: #45b7d1;
+        }
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 5px;
+            z-index: 100;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h3>Importimi i Modeleve 3D</h3>
+        <p><strong>GLTF:</strong> Formati standard për modele 3D në web</p>
+        <p><strong>Animacione:</strong> Modelet mund të kenë animacione të integruara</p>
+        <p><strong>Tekstura:</strong> Materialet dhe teksturat ruhen automatikisht</p>
+        <p><strong>Optimizim:</strong> GLTF është i optimizuar për performancë</p>
+    </div>
+
+    <div class="controls">
+        <button onclick="toggleAnimation()">Play/Pause Animacioni</button>
+        <button onclick="switchModel()">Ndrysho Modelin</button>
+        <button onclick="toggleWireframe()">Wireframe</button>
+        <button onclick="resetScene()">Reset Skena</button>
+    </div>
+
+    <div id="loadingScreen" class="loading" style="display: none;">
+        <h3>Duke ngarkuar modelin...</h3>
+        <p>Ju lutemi prisni...</p>
+    </div>
+
+    <a-scene background="color: #87ceeb" stats>
+        <a-assets timeout="10000">
+            <!-- Placeholder modele - për demonstrim do të përdorim modele të thjeshta procedurale -->
+            <!-- Në një rast real, këtu do të kishin URL të modeleve GLTF -->
+            
+            <!-- Tekstura -->
+            <img id="groundTexture" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFUlEQVQIHWM8c+YMAxKAiTjBcDoAAOgACACFVAYSAAAAAElFTkSuQmCC">
+            <img id="skyTexture" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFUlEQVQIHWN89eoVAyKAiTjBcDoAALwABwCxKwBPAAAAAElFTkSuQmCC">
+            
+            <!-- Mixins -->
+            <a-mixin id="model-container"
+                     animation-mixer="clip: *; loop: repeat"
+                     shadow="cast: true">
+            </a-mixin>
+        </a-assets>
+
+        <!-- Drita -->
+        <a-light type="ambient" color="#404040" intensity="0.5"></a-light>
+        <a-light type="directional" 
+                 position="5 10 5" 
+                 color="#ffffff" 
+                 intensity="0.8"
+                 shadow="cast: true; type: pcfsoft">
+        </a-light>
+        <a-light type="point" 
+                 position="0 3 3" 
+                 color="#ffaa00" 
+                 intensity="0.3">
+        </a-light>
+
+        <!-- Kamera me kontrolle -->
+        <a-camera position="0 1.6 5" 
+                  look-controls="enabled: true" 
+                  wasd-controls="enabled: true">
+            <a-cursor color="#ff6b6b"></a-cursor>
+        </a-camera>
+
+        <!-- Objekti kryesor i modelit - Për demonstrim përdorim gjeometri procedurale -->
+        <!-- Në praktikë, këtu do të ishte: <a-gltf-model src="#myModel"> -->
+        
+        <a-entity id="mainModel" position="0 0 0">
+            <!-- Roboti i thjeshtë i bërë nga primitiva -->
+            <a-entity id="robot">
+                <!-- Trupi -->
+                <a-box id="robotBody" 
+                       position="0 1.5 0" 
+                       width="1" height="1.5" depth="0.8" 
+                       color="#4ecdc4" 
+                       shadow="cast: true"
+                       animation__float="property: position; to: 0 1.7 0; dur: 2000; direction: alternate; loop: true; easing: easeInOutSine">
+                </a-box>
+                
+                <!-- Koka -->
+                <a-sphere id="robotHead" 
+                          position="0 2.5 0" 
+                          radius="0.4" 
+                          color="#ff6b6b" 
+                          shadow="cast: true"
+                          animation__rotate="property: rotation; to: 0 360 0; dur: 4000; loop: true; easing: linear">
+                </a-sphere>
+                
+                <!-- Sytë -->
+                <a-sphere position="-0.15 2.5 0.3" radius="0.08" color="#00ff00"></a-sphere>
+                <a-sphere position="0.15 2.5 0.3" radius="0.08" color="#00ff00"
+                          animation__blink="property: scale; to: 1 0.1 1; dur: 200; direction: alternate; loop: true; delay: 3000">
+                </a-sphere>
+                
+                <!-- Krahët -->
+                <a-cylinder id="leftArm" 
+                           position="-0.7 1.5 0" 
+                           height="1.2" radius="0.15" 
+                           color="#ffe66d" 
+                           shadow="cast: true"
+                           animation__swing="property: rotation; to: 30 0 0; dur: 1000; direction: alternate; loop: true; easing: easeInOutQuad">
+                </a-cylinder>
+                <a-cylinder id="rightArm" 
+                           position="0.7 1.5 0" 
+                           height="1.2" radius="0.15" 
+                           color="#ffe66d" 
+                           shadow="cast: true"
+                           animation__swing="property: rotation; to: -30 0 0; dur: 1000; direction: alternate; loop: true; easing: easeInOutQuad; delay: 500">
+                </a-cylinder>
+                
+                <!-- Këmbët -->
+                <a-cylinder id="leftLeg" 
+                           position="-0.3 0.4 0" 
+                           height="0.8" radius="0.12" 
+                           color="#a8e6cf" 
+                           shadow="cast: true">
+                </a-cylinder>
+                <a-cylinder id="rightLeg" 
+                           position="0.3 0.4 0" 
+                           height="0.8" radius="0.12" 
+                           color="#a8e6cf" 
+                           shadow="cast: true">
+                </a-cylinder>
+            </a-entity>
+        </a-entity>
+
+        <!-- Objekti i dytë - Makina e thjeshtë -->
+        <a-entity id="carModel" position="3 0 0" visible="false">
+            <!-- Trupi i makinës -->
+            <a-box position="0 0.3 0" 
+                   width="2" height="0.6" depth="1" 
+                   color="#ff6b6b" 
+                   shadow="cast: true">
+            </a-box>
+            <!-- Kabina -->
+            <a-box position="0 0.8 -0.2" 
+                   width="1.5" height="0.6" depth="0.6" 
+                   color="#87ceeb" 
+                   material="transparent: true; opacity: 0.8"
+                   shadow="cast: true">
+            </a-box>
+            <!-- Rrotat -->
+            <a-cylinder position="-0.7 0 0.4" rotation="0 0 90" 
+                       height="0.1" radius="0.3" 
+                       color="#333333"
+                       animation__spin="property: rotation; to: 0 0 450; dur: 1000; loop: true; easing: linear">
+            </a-cylinder>
+            <a-cylinder position="0.7 0 0.4" rotation="0 0 90" 
+                       height="0.1" radius="0.3" 
+                       color="#333333"
+                       animation__spin="property: rotation; to: 0 0 450; dur: 1000; loop: true; easing: linear">
+            </a-cylinder>
+            <a-cylinder position="-0.7 0 -0.4" rotation="0 0 90" 
+                       height="0.1" radius="0.3" 
+                       color="#333333"
+                       animation__spin="property: rotation; to: 0 0 450; dur: 1000; loop: true; easing: linear">
+            </a-cylinder>
+            <a-cylinder position="0.7 0 -0.4" rotation="0 0 90" 
+                       height="0.1" radius="0.3" 
+                       color="#333333"
+                       animation__spin="property: rotation; to: 0 0 450; dur: 1000; loop: true; easing: linear">
+            </a-cylinder>
+        </a-entity>
+
+        <!-- Objekti i tretë - Shtëpia -->
+        <a-entity id="houseModel" position="-3 0 0" visible="false">
+            <!-- Baza e shtëpisë -->
+            <a-box position="0 1 0" 
+                   width="2" height="2" depth="2" 
+                   color="#dda0dd" 
+                   shadow="cast: true">
+            </a-box>
+            <!-- Çatia -->
+            <a-cone position="0 2.5 0" 
+                   height="1" radius-bottom="1.5" 
+                   color="#8b4513" 
+                   shadow="cast: true">
+            </a-cone>
+            <!-- Dera -->
+            <a-box position="0 0.5 1.01" 
+                   width="0.5" height="1" depth="0.05" 
+                   color="#654321">
+            </a-box>
+            <!-- Dritaret -->
+            <a-box position="-0.6 1.3 1.01" 
+                   width="0.4" height="0.4" depth="0.05" 
+                   color="#87ceeb" 
+                   material="transparent: true; opacity: 0.8">
+            </a-box>
+            <a-box position="0.6 1.3 1.01" 
+                   width="0.4" height="0.4" depth="0.05" 
+                   color="#87ceeb" 
+                   material="transparent: true; opacity: 0.8">
+            </a-box>
+        </a-entity>
+
+        <!-- Plani bazë -->
+        <a-plane position="0 0 0" 
+                 rotation="-90 0 0" 
+                 width="20" 
+                 height="20" 
+                 color="#90ee90"
+                 shadow="receive: true"
+                 material="roughness: 1">
+        </a-plane>
+
+        <!-- Dekorimi i skenës -->
+        <a-entity id="environment">
+            <!-- Pemët -->
+            <a-cone position="-5 1 -3" height="2" radius-bottom="0.3" color="#228b22" shadow="cast: true"></a-cone>
+            <a-cylinder position="-5 0.2 -3" height="0.4" radius="0.1" color="#8b4513" shadow="cast: true"></a-cylinder>
+            
+            <a-cone position="5 1.5 -2" height="3" radius-bottom="0.4" color="#006400" shadow="cast: true"></a-cone>
+            <a-cylinder position="5 0.3 -2" height="0.6" radius="0.12" color="#8b4513" shadow="cast: true"></a-cylinder>
+        </a-entity>
+
+        <!-- Teksti informatik -->
+        <a-text value="GLTF Model Showcase" 
+                position="0 4 -3" 
+                align="center" 
+                color="#333333" 
+                width="8">
+        </a-text>
+
+        <!-- Hija për demo -->
+        <a-sky color="#e6f3ff"></a-sky>
+    </a-scene>
+
+    <script>
+        let currentModel = 0;
+        let animationPaused = false;
+        let wireframeMode = false;
+        const models = ['robot', 'carModel', 'houseModel'];
+        const modelNames = ['Robot', 'Makina', 'Shtëpia'];
+
+        // Inicializimi
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('A-Frame Import Assets demo loaded');
+            showLoadingScreen();
+            
+            // Simulimi i ngarkimit të modelit
+            setTimeout(() => {
+                hideLoadingScreen();
+                showWelcomeMessage();
+            }, 2000);
+        });
+
+        function showLoadingScreen() {
+            document.getElementById('loadingScreen').style.display = 'block';
+        }
+
+        function hideLoadingScreen() {
+            document.getElementById('loadingScreen').style.display = 'none';
+        }
+
+        function showWelcomeMessage() {
+            const scene = document.querySelector('a-scene');
+            const welcomeText = document.createElement('a-text');
+            
+            welcomeText.setAttribute('value', 'Modeli u ngarkua me sukses!');
+            welcomeText.setAttribute('position', '0 3 -1');
+            welcomeText.setAttribute('align', 'center');
+            welcomeText.setAttribute('color', '#00ff00');
+            welcomeText.setAttribute('width', '6');
+            welcomeText.setAttribute('animation__appear', {
+                property: 'material.opacity',
+                from: '0',
+                to: '1',
+                dur: 1000
+            });
+            welcomeText.setAttribute('animation__disappear', {
+                property: 'material.opacity',
+                from: '1',
+                to: '0',
+                dur: 1000,
+                delay: 3000
+            });
+            
+            scene.appendChild(welcomeText);
+            
+            setTimeout(() => {
+                if (welcomeText.parentNode) {
+                    welcomeText.parentNode.removeChild(welcomeText);
+                }
+            }, 5000);
+        }
+
+        function toggleAnimation() {
+            const mainModel = document.getElementById('mainModel');
+            const allAnimations = mainModel.querySelectorAll('[animation], [animation__float], [animation__rotate], [animation__blink], [animation__swing], [animation__spin]');
+            
+            animationPaused = !animationPaused;
+            
+            allAnimations.forEach(element => {
+                const animations = element.components;
+                Object.keys(animations).forEach(key => {
+                    if (key.startsWith('animation')) {
+                        if (animationPaused) {
+                            animations[key].pauseAnimation();
+                        } else {
+                            animations[key].resumeAnimation();
+                        }
+                    }
+                });
+            });
+            
+            console.log(animationPaused ? 'Animacionet u ndaluan' : 'Animacionet u rinisën');
+        }
+
+        function switchModel() {
+            // Fshih modelin aktual
+            const currentModelEl = document.getElementById(models[currentModel]);
+            if (currentModelEl) {
+                currentModelEl.setAttribute('visible', 'false');
+            }
+            
+            // Kalo në modelin tjetër
+            currentModel = (currentModel + 1) % models.length;
+            
+            // Shfaq modelin e ri
+            const newModelEl = document.getElementById(models[currentModel]);
+            if (newModelEl) {
+                newModelEl.setAttribute('visible', 'true');
+                
+                // Efekti i shfaqjes
+                newModelEl.setAttribute('animation__appear', {
+                    property: 'scale',
+                    from: '0.1 0.1 0.1',
+                    to: '1 1 1',
+                    dur: 500,
+                    easing: 'easeOutBack'
+                });
+            }
+            
+            // Përditëso tekstin
+            const infoText = document.querySelector('a-text');
+            if (infoText) {
+                infoText.setAttribute('value', `Modeli Aktual: ${modelNames[currentModel]}`);
+            }
+            
+            console.log(`Ndryshuar në modelin: ${modelNames[currentModel]}`);
+        }
+
+        function toggleWireframe() {
+            wireframeMode = !wireframeMode;
+            const allMeshes = document.querySelectorAll('a-box, a-sphere, a-cylinder, a-cone, a-plane');
+            
+            allMeshes.forEach(mesh => {
+                mesh.setAttribute('material', 'wireframe', wireframeMode);
+            });
+            
+            console.log(wireframeMode ? 'Wireframe mode ON' : 'Wireframe mode OFF');
+        }
+
+        function resetScene() {
+            // Reset model visibility
+            models.forEach((modelId, index) => {
+                const model = document.getElementById(modelId);
+                if (model) {
+                    model.setAttribute('visible', index === 0);
+                    model.setAttribute('scale', '1 1 1');
+                }
+            });
+            
+            currentModel = 0;
+            animationPaused = false;
+            wireframeMode = false;
+            
+            // Reset wireframe
+            const allMeshes = document.querySelectorAll('a-box, a-sphere, a-cylinder, a-cone, a-plane');
+            allMeshes.forEach(mesh => {
+                mesh.setAttribute('material', 'wireframe', false);
+            });
+            
+            // Reset info text
+            const infoText = document.querySelector('a-text');
+            if (infoText) {
+                infoText.setAttribute('value', 'GLTF Model Showcase');
+            }
+            
+            console.log('Skena u rivendos');
+        }
+
+        // Event listeners për ndërveprime
+        document.addEventListener('DOMContentLoaded', function() {
+            const models = document.querySelectorAll('#robot, #carModel, #houseModel');
+            
+            models.forEach(model => {
+                model.addEventListener('click', function() {
+                    // Efekti i klikimit
+                    this.setAttribute('animation__click', {
+                        property: 'scale',
+                        to: '1.1 1.1 1.1',
+                        dur: 200,
+                        direction: 'alternate',
+                        loop: 1
+                    });
+                });
+                
+                model.addEventListener('mouseenter', function() {
+                    // Efekti i hover-it
+                    this.setAttribute('animation__hover', {
+                        property: 'position',
+                        to: `${this.getAttribute('position').x} ${this.getAttribute('position').y + 0.2} ${this.getAttribute('position').z}`,
+                        dur: 300
+                    });
+                });
+                
+                model.addEventListener('mouseleave', function() {
+                    // Kthimi në pozicionin origjinal
+                    const originalPos = this.getAttribute('position');
+                    this.setAttribute('animation__hover', {
+                        property: 'position',
+                        to: `${originalPos.x} ${originalPos.y - 0.2} ${originalPos.z}`,
+                        dur: 300
+                    });
+                });
+            });
+        });
+
+        // Demonstrimi i ngarkimit dinamik të modeleve (simulim)
+        function loadGLTFModel(url) {
+            console.log(`Simulimi i ngarkimit të modelit: ${url}`);
+            showLoadingScreen();
+            
+            // Simulim delay për ngarkimin
+            setTimeout(() => {
+                hideLoadingScreen();
+                console.log('Modeli u ngarkua me sukses (simulim)');
+            }, Math.random() * 2000 + 1000);
+        }
+
+        // Shembull për ngarkimin real të GLTF (për referencë)
+        /*
+        function loadRealGLTF() {
+            const scene = document.querySelector('a-scene');
+            const gltfModel = document.createElement('a-gltf-model');
+            
+            gltfModel.setAttribute('src', './models/myModel.gltf');
+            gltfModel.setAttribute('position', '0 0 0');
+            gltfModel.setAttribute('scale', '1 1 1');
+            gltfModel.setAttribute('animation-mixer', 'clip: *; loop: repeat');
+            
+            gltfModel.addEventListener('model-loaded', function() {
+                console.log('GLTF model loaded successfully');
+                hideLoadingScreen();
+            });
+            
+            gltfModel.addEventListener('model-error', function(error) {
+                console.error('Error loading GLTF model:', error);
+                hideLoadingScreen();
+            });
+            
+            scene.appendChild(gltfModel);
+        }
+        */
+    </script>
+</body>
+</html>

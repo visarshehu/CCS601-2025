@@ -29,10 +29,18 @@ const originalColors = [];
 const colors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff, 0x00ffff];
 
 for (let i = 0; i < 15; i++) {
-    const geometry = new THREE.BoxGeometry();
+    const geometry = new THREE.BoxGeometry(0.5);
     const material = new THREE.MeshLambertMaterial({ color: Math.random() * 0xffffff });
     const cube = new THREE.Mesh(geometry, material);
     
+    const sphereMaterial = new THREE.MeshLambertMaterial({ color: Math.random() * 0xffffff });
+
+    const sphereGeometry = new THREE.SphereGeometry(0.5, 16, 16);
+    const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    sphere.position.x = (Math.random() - 0.5) * 10;
+    sphere.position.y = (Math.random() - 0.5) * 10;
+    sphere.position.z = (Math.random() - 0.5) * 10;
+
     cube.position.x = (Math.random() - 0.5) * 10;
     cube.position.y = (Math.random() - 0.5) * 10;
     cube.position.z = (Math.random() - 0.5) * 10;
@@ -43,7 +51,7 @@ for (let i = 0; i < 15; i++) {
     
     cube.castShadow = true;
     cube.receiveShadow = true;
-    
+    scene.add(sphere);
     scene.add(cube);
     cubes.push(cube);
     originalColors.push(material.color.getHex());
@@ -54,7 +62,7 @@ function onMouseClick(event) {
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
     raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(cubes);
+    const intersects = raycaster.intersectObjects(scene.children);
 
     if (intersects.length > 0) {
         const intersected = intersects[0].object;

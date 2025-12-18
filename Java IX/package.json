@@ -1,0 +1,21 @@
+{
+  "name": "java-ix-aframe-vr-ar",
+  "version": "1.0.0",
+  "description": "A-Frame VR/AR examples for CCS601 Course",
+  "type": "module",
+  "scripts": {
+    "hello-world": "vite --config hello-world/vite.config.js",
+    "interaction": "vite --config interaction/vite.config.js",
+    "import-assets": "vite --config import-assets/vite.config.js",
+    "magic-window": "vite --config magic-window/vite.config.js",
+    "magic-window-locations": "vite --config magic-window-locations/vite.config.js",
+    "magic-window-surface": "vite --config magic-window-surface/vite.config.js"
+  },
+  "dependencies": {
+    "aframe": "^1.6.0",
+    "ar-js": "^3.4.5"
+  },
+  "devDependencies": {
+    "vite": "^7.1.7"
+  }
+}

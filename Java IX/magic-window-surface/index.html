@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magic Window Surface - Surface Tracking AR</title>
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        .info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            z-index: 100;
+            max-width: 350px;
+        }
+        .info h3 {
+            margin-top: 0;
+            color: #00d4ff;
+        }
+        .surface-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+            max-width: 200px;
+        }
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+            text-align: center;
+        }
+        .controls button {
+            background: #4ecdc4;
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            margin: 0 5px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .controls button:hover {
+            background: #45b7d1;
+        }
+        .tracking-status {
+            position: absolute;
+            bottom: 120px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+        }
+        .tracking-status.active {
+            background: rgba(0,128,0,0.8);
+        }
+        .tracking-status.lost {
+            background: rgba(128,0,0,0.8);
+        }
+        .surface-guide {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 1000;
+            text-align: center;
+            max-width: 400px;
+        }
+        .surface-guide button {
+            background: #00ff00;
+            border: none;
+            color: black;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+        .calibration {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,255,0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 1000;
+            text-align: center;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h3>AR me Gjurmim Sipërfaqeje</h3>
+        <p><strong>Sipërfaqja:</strong> Gjen sipërfaqe të rrafshëta</p>
+        <p><strong>Tracking:</strong> Vendos objektet mbi sipërfaqen reale</p>
+        <p><strong>6DOF:</strong> Liri e plotë e lëvizjes</p>
+        <p><strong>SLAM:</strong> Simultaneous Localization and Mapping</p>
+    </div>
+
+    <div class="surface-info" id="surfaceInfo">
+        <div><strong>🎯 Surface Tracking</strong></div>
+        <div id="surfaceCount">Sipërfaqe: 0</div>
+        <div id="trackingQuality">Cilësia: N/A</div>
+        <div id="anchorPoints">Ankorë: 0</div>
+    </div>
+
+    <div class="tracking-status" id="trackingStatus">
+        🔍 Duke kërkuar sipërfaqe...
+    </div>
+
+    <div class="controls">
+        <button onclick="calibrateSurface()">Kalibrim</button>
+        <button onclick="placeObject()">Vendo Objekt</button>
+        <button onclick="clearSurface()">Pastro</button>
+        <button onclick="resetTracking()">Reset Tracking</button>
+    </div>
+
+    <div id="surfaceGuide" class="surface-guide" style="display: block;">
+        <h3>📱 Surface Tracking AR</h3>
+        <p>Ky demo simulon AR me gjurmim sipërfaqeje.</p>
+        <div style="margin: 15px 0;">
+            <div>📋 <strong>Udhëzime:</strong></div>
+            <ol style="text-align: left; margin: 10px 0;">
+                <li>Drejtoni kamerën poshtë në një sipërfaqe të rrafshët</li>
+                <li>Lëvizni kamerën ngadalë për të skanuar sipërfaqen</li>
+                <li>Prisni që sistemi të gjejë sipërfaqen</li>
+                <li>Kliko për të vendosur objektet</li>
+            </ol>
+        </div>
+        <p><em>Shënim:</em> Për demonstrim, simulohet tracking i sipërfaqes.</p>
+        <button onclick="hideSurfaceGuide()">Filloj Tracking</button>
+    </div>
+
+    <div id="calibrationDialog" class="calibration">
+        <h3>🎯 Kalibrimi i Sipërfaqes</h3>
+        <p>Lëvizni kamerën ngadalë mbi sipërfaqen...</p>
+        <div id="calibrationProgress">Progresi: 0%</div>
+        <button onclick="stopCalibration()">Ndalo</button>
+    </div>
+
+    <!-- A-Frame scene me surface tracking -->
+    <a-scene 
+        embedded 
+        arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;"
+        vr-mode-ui="enabled: false"
+        surface-tracker>
+        
+        <a-assets>
+            <!-- Audio për efekte -->
+            <audio id="surfaceFound" preload="auto">
+                <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEcBDuZ3fXKdSgELIHR9N2ITggTZLrx6aFOEQxOqObxs2EbBjiS2fDJeBEE" type="audio/wav">
+            </audio>
+            <audio id="objectPlaced" preload="auto">
+                <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEcBDuZ3fXKdSgELIHR9N2ITggTZLrx6aFOEQxOqObxs2EbBjiS2fDJeBEE" type="audio/wav">
+            </audio>
+        </a-assets>
+
+        <!-- Sipërfaqja e detektuar (simulim) -->
+        <a-entity 
+            id="detectedSurface" 
+            position="0 -1 -3" 
+            visible="false"
+            surface-anchor>
+            
+            <!-- Visualizimi i sipërfaqes -->
+            <a-plane 
+                id="surfacePlane"
+                width="6" height="6" 
+                color="#333333" 
+                material="opacity: 0.1; transparent: true; side: double"
+                rotation="-90 0 0">
+            </a-plane>
+
+            <!-- Grid për të vizualizuar sipërfaqen -->
+            <a-entity id="surfaceGrid">
+                <!-- Linjat horizontale -->
+                <a-entity geometry="primitive: box; width: 6; height: 0.01; depth: 0.02" 
+                         material="color: #00ff00; opacity: 0.8" 
+                         position="0 0.01 -2" rotation="-90 0 0"></a-entity>
+                <a-entity geometry="primitive: box; width: 6; height: 0.01; depth: 0.02" 
+                         material="color: #00ff00; opacity: 0.8" 
+                         position="0 0.01 -1" rotation="-90 0 0"></a-entity>
+                <a-entity geometry="primitive: box; width: 6; height: 0.01; depth: 0.02" 
+                         material="color: #00ff00; opacity: 0.8" 
+                         position="0 0.01 0" rotation="-90 0 0"></a-entity>
+                <a-entity geometry="primitive: box; width: 6; height: 0.01; depth: 0.02" 
+                         material="color: #00ff00; opacity: 0.8" 
+                         position="0 0.01 1" rotation="-90 0 0"></a-entity>
+                <a-entity geometry="primitive: box; width: 6; height: 0.01; depth: 0.02" 
+                         material="color: #00ff00; opacity: 0.8" 
+                         position="0 0.01 2" rotation="-90 0 0"></a-entity>
+
+                <!-- Linjat vertikale -->
+                <a-entity geometry="primitive: box; width: 0.02; height: 0.01; depth: 6" 
+                         material="color: #00ff00; opacity: 0.8" 
+                         position="-2 0.01 0" rotation="-90 0 0"></a-entity>
+                <a-entity geometry="primitive: box; width: 0.02; height: 0.01; depth: 6" 
+                         material="color: #00ff00; opacity: 0.8" 
+                         position="-1 0.01 0" rotation="-90 0 0"></a-entity>
+                <a-entity geometry="primitive: box; width: 0.02; height: 0.01; depth: 6" 
+                         material="color: #00ff00; opacity: 0.8" 
+                         position="0 0.01 0" rotation="-90 0 0"></a-entity>
+                <a-entity geometry="primitive: box; width: 0.02; height: 0.01; depth: 6" 
+                         material="color: #00ff00; opacity: 0.8" 
+                         position="1 0.01 0" rotation="-90 0 0"></a-entity>
+                <a-entity geometry="primitive: box; width: 0.02; height: 0.01; depth: 6" 
+                         material="color: #00ff00; opacity: 0.8" 
+                         position="2 0.01 0" rotation="-90 0 0"></a-entity>
+            </a-entity>
+
+            <!-- Objektet e vendosura -->
+            <a-entity id="placedObjects">
+                <!-- Objektet do të shtohen dinamikisht këtu -->
+            </a-entity>
+        </a-entity>
+
+        <!-- Kamera AR -->
+        <a-entity camera 
+                  look-controls-enabled="false" 
+                  wasd-controls-enabled="false"
+                  cursor="rayOrigin: mouse; fuse: false">
+        </a-entity>
+    </a-scene>
+
+    <script>
+        let surfaceDetected = false;
+        let isCalibrating = false;
+        let objectCounter = 0;
+        let trackingQuality = 'medium';
+        let anchorPoints = [];
+
+        // Simulimi i objekteve që mund të vendosen
+        const placeableObjects = [
+            { 
+                type: 'cube', 
+                geometry: 'primitive: box; width: 0.3; height: 0.3; depth: 0.3',
+                material: 'color: #ff6b6b; metalness: 0.3',
+                name: 'Kubi' 
+            },
+            { 
+                type: 'sphere', 
+                geometry: 'primitive: sphere; radius: 0.15',
+                material: 'color: #4ecdc4; metalness: 0.4',
+                name: 'Sfera' 
+            },
+            { 
+                type: 'cylinder', 
+                geometry: 'primitive: cylinder; height: 0.4; radius: 0.1',
+                material: 'color: #ffe66d; metalness: 0.2',
+                name: 'Cilindri' 
+            },
+            { 
+                type: 'cone', 
+                geometry: 'primitive: cone; height: 0.4; radius-bottom: 0.15',
+                material: 'color: #a8e6cf; metalness: 0.1',
+                name: 'Koni' 
+            }
+        ];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Surface tracking AR initialized');
+            simulateSurfaceDetection();
+        });
+
+        function hideSurfaceGuide() {
+            document.getElementById('surfaceGuide').style.display = 'none';
+            setTimeout(() => {
+                startSurfaceTracking();
+            }, 1000);
+        }
+
+        function startSurfaceTracking() {
+            document.getElementById('trackingStatus').innerHTML = '🔍 Duke skanuar sipërfaqen...';
+            
+            // Simulimi i detektimit të sipërfaqes
+            setTimeout(() => {
+                detectSurface();
+            }, 3000);
+        }
+
+        function detectSurface() {
+            surfaceDetected = true;
+            const surface = document.getElementById('detectedSurface');
+            const trackingStatus = document.getElementById('trackingStatus');
+            
+            surface.setAttribute('visible', 'true');
+            surface.setAttribute('animation__appear', {
+                property: 'scale',
+                from: '0.1 0.1 0.1',
+                to: '1 1 1',
+                dur: 1000,
+                easing: 'easeOutBack'
+            });
+            
+            trackingStatus.innerHTML = '✅ Sipërfaqja u detektua!';
+            trackingStatus.className = 'tracking-status active';
+            
+            // Përditëso informacionet
+            updateSurfaceInfo();
+            
+            // Luaj tingullin
+            const sound = document.getElementById('surfaceFound');
+            if (sound) {
+                sound.play().catch(e => console.log('Audio play failed:', e));
+            }
+            
+            console.log('Surface detected and anchored');
+        }
+
+        function simulateSurfaceDetection() {
+            // Simulimi i procesit të tracking-ut
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 10;
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    progress = 100;
+                }
+                
+                // Simulimi i cilësisë së tracking-ut
+                if (progress < 30) {
+                    trackingQuality = 'poor';
+                } else if (progress < 70) {
+                    trackingQuality = 'medium';
+                } else {
+                    trackingQuality = 'good';
+                }
+                
+                updateSurfaceInfo();
+            }, 500);
+        }
+
+        function updateSurfaceInfo() {
+            const surfaceCount = surfaceDetected ? 1 : 0;
+            const anchorCount = anchorPoints.length;
+            
+            document.getElementById('surfaceCount').innerHTML = `Sipërfaqe: ${surfaceCount}`;
+            document.getElementById('trackingQuality').innerHTML = `Cilësia: ${trackingQuality}`;
+            document.getElementById('anchorPoints').innerHTML = `Ankorë: ${anchorCount}`;
+        }
+
+        function calibrateSurface() {
+            if (isCalibrating) return;
+            
+            isCalibrating = true;
+            const dialog = document.getElementById('calibrationDialog');
+            const progressEl = document.getElementById('calibrationProgress');
+            
+            dialog.style.display = 'block';
+            
+            let progress = 0;
+            const calibrationInterval = setInterval(() => {
+                progress += Math.random() * 15 + 5;
+                
+                if (progress >= 100) {
+                    clearInterval(calibrationInterval);
+                    progress = 100;
+                    setTimeout(() => {
+                        stopCalibration();
+                        improveTracking();
+                    }, 500);
+                }
+                
+                progressEl.innerHTML = `Progresi: ${Math.round(progress)}%`;
+            }, 300);
+        }
+
+        function stopCalibration() {
+            isCalibrating = false;
+            document.getElementById('calibrationDialog').style.display = 'none';
+        }
+
+        function improveTracking() {
+            trackingQuality = 'excellent';
+            anchorPoints.push({ x: 0, y: 0, z: 0 });
+            updateSurfaceInfo();
+            
+            // Përmirëso visualizimin e grid-it
+            const gridElements = document.querySelectorAll('#surfaceGrid a-entity');
+            gridElements.forEach(element => {
+                element.setAttribute('material', 'color', '#00ffff');
+                element.setAttribute('material', 'opacity', '1');
+            });
+            
+            console.log('Surface tracking improved after calibration');
+        }
+
+        function placeObject() {
+            if (!surfaceDetected) {
+                alert('Së pari duhet të detektohet sipërfaqja!');
+                return;
+            }
+            
+            const randomType = Math.floor(Math.random() * placeableObjects.length);
+            const objectData = placeableObjects[randomType];
+            
+            // Pozicion i rastësishëm mbi sipërfaqen
+            const x = (Math.random() - 0.5) * 4;
+            const z = (Math.random() - 0.5) * 4;
+            const y = 0.2; // Pak mbi sipërfaqen
+            
+            createPlacedObject(objectData, x, y, z);
+            
+            console.log(`Object placed: ${objectData.name} at (${x}, ${y}, ${z})`);
+        }
+
+        function createPlacedObject(objectData, x, y, z) {
+            const placedObjects = document.getElementById('placedObjects');
+            const newObject = document.createElement('a-entity');
+            
+            objectCounter++;
+            const objectId = `placed_object_${objectCounter}`;
+            
+            newObject.setAttribute('id', objectId);
+            newObject.setAttribute('geometry', objectData.geometry);
+            newObject.setAttribute('material', objectData.material);
+            newObject.setAttribute('position', `${x} ${y} ${z}`);
+            newObject.setAttribute('shadow', 'cast: true');
+            
+            // Efekti i vendosjes
+            newObject.setAttribute('animation__place', {
+                property: 'scale',
+                from: '0.1 0.1 0.1',
+                to: '1 1 1',
+                dur: 500,
+                easing: 'easeOutBack'
+            });
+            
+            // Animacioni i vazhdueshëm
+            if (objectData.type === 'cube') {
+                newObject.setAttribute('animation__rotate', {
+                    property: 'rotation',
+                    to: '360 360 0',
+                    dur: 8000,
+                    loop: true,
+                    easing: 'linear'
+                });
+            } else if (objectData.type === 'sphere') {
+                newObject.setAttribute('animation__bounce', {
+                    property: 'position',
+                    to: `${x} ${y + 0.3} ${z}`,
+                    dur: 1500,
+                    direction: 'alternate',
+                    loop: true,
+                    easing: 'easeInOutQuad'
+                });
+            }
+            
+            // Event listeners për ndërveprim
+            newObject.addEventListener('click', function() {
+                this.setAttribute('animation__click', {
+                    property: 'scale',
+                    to: '1.2 1.2 1.2',
+                    dur: 200,
+                    direction: 'alternate',
+                    loop: 1
+                });
+            });
+            
+            placedObjects.appendChild(newObject);
+            
+            // Përditëso anchor points
+            anchorPoints.push({ x, y, z });
+            updateSurfaceInfo();
+            
+            // Luaj tingullin
+            const sound = document.getElementById('objectPlaced');
+            if (sound) {
+                sound.play().catch(e => console.log('Audio play failed:', e));
+            }
+        }
+
+        function clearSurface() {
+            const placedObjects = document.getElementById('placedObjects');
+            
+            // Animacioni i zhdukjes para se të fshihen
+            const objects = placedObjects.children;
+            let delay = 0;
+            
+            for (let i = objects.length - 1; i >= 0; i--) {
+                const obj = objects[i];
+                setTimeout(() => {
+                    obj.setAttribute('animation__disappear', {
+                        property: 'scale',
+                        to: '0.1 0.1 0.1',
+                        dur: 300,
+                        easing: 'easeInBack'
+                    });
+                    
+                    setTimeout(() => {
+                        if (obj.parentNode) {
+                            obj.parentNode.removeChild(obj);
+                        }
+                    }, 300);
+                }, delay);
+                
+                delay += 100;
+            }
+            
+            // Reset counter dhe anchor points
+            objectCounter = 0;
+            anchorPoints = [];
+            updateSurfaceInfo();
+            
+            console.log('Surface cleared');
+        }
+
+        function resetTracking() {
+            // Reset gjithçka
+            surfaceDetected = false;
+            isCalibrating = false;
+            objectCounter = 0;
+            trackingQuality = 'medium';
+            anchorPoints = [];
+            
+            // Fshih sipërfaqen
+            const surface = document.getElementById('detectedSurface');
+            surface.setAttribute('visible', 'false');
+            
+            // Reset status
+            const trackingStatus = document.getElementById('trackingStatus');
+            trackingStatus.innerHTML = '🔍 Duke kërkuar sipërfaqe...';
+            trackingStatus.className = 'tracking-status';
+            
+            // Pastro objektet
+            clearSurface();
+            
+            // Reset grid colors
+            const gridElements = document.querySelectorAll('#surfaceGrid a-entity');
+            gridElements.forEach(element => {
+                element.setAttribute('material', 'color', '#00ff00');
+                element.setAttribute('material', 'opacity', '0.8');
+            });
+            
+            updateSurfaceInfo();
+            
+            // Rifillo tracking pas një momenti
+            setTimeout(() => {
+                startSurfaceTracking();
+            }, 1000);
+            
+            console.log('Surface tracking reset');
+        }
+
+        // Custom A-Frame components
+        AFRAME.registerComponent('surface-tracker', {
+            init: function() {
+                console.log('Surface tracker component initialized');
+                this.el.addEventListener('loaded', () => {
+                    console.log('Scene loaded, starting surface tracking simulation');
+                });
+            }
+        });
+
+        AFRAME.registerComponent('surface-anchor', {
+            init: function() {
+                console.log('Surface anchor component initialized');
+            },
+            
+            tick: function() {
+                // Simulimi i tracking-ut të sipërfaqes
+                if (surfaceDetected) {
+                    // Simulimi i një tracking-u të vogël të noisy
+                    const noise = 0.001;
+                    const position = this.el.getAttribute('position');
+                    
+                    if (trackingQuality === 'poor') {
+                        this.el.setAttribute('position', {
+                            x: position.x + (Math.random() - 0.5) * noise * 5,
+                            y: position.y + (Math.random() - 0.5) * noise * 2,
+                            z: position.z + (Math.random() - 0.5) * noise * 5
+                        });
+                    } else if (trackingQuality === 'medium') {
+                        this.el.setAttribute('position', {
+                            x: position.x + (Math.random() - 0.5) * noise * 2,
+                            y: position.y,
+                            z: position.z + (Math.random() - 0.5) * noise * 2
+                        });
+                    }
+                    // 'good' dhe 'excellent' janë stabil
+                }
+            }
+        });
+
+        // Error handling
+        window.addEventListener('error', function(event) {
+            console.error('AR Error:', event.error);
+            const trackingStatus = document.getElementById('trackingStatus');
+            trackingStatus.innerHTML = '❌ Gabim në AR';
+            trackingStatus.className = 'tracking-status lost';
+        });
+
+        // Cleanup
+        window.addEventListener('beforeunload', function() {
+            console.log('Cleaning up surface tracking AR');
+        });
+    </script>
+</body>
+</html>

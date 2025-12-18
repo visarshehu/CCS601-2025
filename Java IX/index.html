@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Java IX - A-Frame VR/AR Examples</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: white;
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .subtitle {
+            text-align: center;
+            color: #e0e0e0;
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+        }
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+        .example-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .example-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        .example-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57, #ff9ff3);
+        }
+        .example-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .example-icon {
+            font-size: 2rem;
+        }
+        .example-description {
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        .example-features {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 25px;
+        }
+        .example-features li {
+            padding: 5px 0;
+            color: #555;
+            position: relative;
+            padding-left: 20px;
+        }
+        .example-features li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #4ecdc4;
+            font-weight: bold;
+        }
+        .example-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            flex: 1;
+            text-align: center;
+            min-width: 120px;
+        }
+        .btn-primary {
+            background: #4ecdc4;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #45b7d1;
+            transform: translateY(-2px);
+        }
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #495057;
+            border: 2px solid #dee2e6;
+        }
+        .btn-secondary:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+        .deployment-info {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .deployment-info h3 {
+            margin-top: 0;
+            color: #ffeb3b;
+        }
+        .vr-icon {
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .ar-icon {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        @media (max-width: 768px) {
+            .examples-grid {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+            .example-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Java IX - A-Frame VR/AR</h1>
+        <p class="subtitle">Shembuj për zhvillimin e aplikacioneve VR dhe AR me A-Frame</p>
+        
+        <div class="deployment-info">
+            <h3>🚀 Vercel Deployment</h3>
+            <p>Të gjitha shembujt janë të konfiguruar për deployment në Vercel. Çdo shembull është i aksesshëm në rrugën e tij të dedikuar.</p>
+            <p><strong>Struktura e URL-ve:</strong> https://your-domain.vercel.app/example-name/</p>
+        </div>
+
+        <div class="examples-grid">
+            <!-- Hello World Example -->
+            <div class="example-card">
+                <div class="example-title">
+                    <span class="example-icon vr-icon">🌍</span>
+                    Hello World
+                </div>
+                <div class="example-description">
+                    Shembull bazik që demonstron konceptet kryesore të A-Frame: Entity-Component-System (ECS), sistemin e koordinatave (Right-Hand Rule), dhe strukturën bazë të skenës VR.
+                </div>
+                <ul class="example-features">
+                    <li>Arkitektura ECS</li>
+                    <li>Sistemi i koordinatave 3D</li>
+                    <li>Animacione bazike</li>
+                    <li>Kontrolle kamerë</li>
+                    <li>Materiale dhe drita</li>
+                </ul>
+                <div class="example-buttons">
+                    <a href="./hello-world/" class="btn btn-primary">Shiko Demo</a>
+                    <a href="./hello-world/index.html" class="btn btn-secondary" target="_blank">Kodi</a>
+                </div>
+            </div>
+
+            <!-- Interaction Example -->
+            <div class="example-card">
+                <div class="example-title">
+                    <span class="example-icon vr-icon">👀</span>
+                    Interaction
+                </div>
+                <div class="example-description">
+                    Demonstron ndërveprimet e bazuara në shikim (gaze-based interaction) dhe sistemin e animacioneve të integruar të A-Frame. Përmban një lojë interaktive për të aktivizuar objektet.
+                </div>
+                <ul class="example-features">
+                    <li>Gaze-based interaction</li>
+                    <li>Cursor me fusing</li>
+                    <li>Sistemi i animacioneve</li>
+                    <li>Event handling</li>
+                    <li>Audio efekte</li>
+                </ul>
+                <div class="example-buttons">
+                    <a href="./interaction/" class="btn btn-primary">Shiko Demo</a>
+                    <a href="./interaction/index.html" class="btn btn-secondary" target="_blank">Kodi</a>
+                </div>
+            </div>
+
+            <!-- Import Assets Example -->
+            <div class="example-card">
+                <div class="example-title">
+                    <span class="example-icon vr-icon">📦</span>
+                    Import Assets
+                </div>
+                <div class="example-description">
+                    Shfaq se si të importohen dhe të menaxhohen modele 3D në format GLTF, duke përfshirë animacione, tekstura, dhe optimizime për performancë në web.
+                </div>
+                <ul class="example-features">
+                    <li>GLTF model loading</li>
+                    <li>Asset management</li>
+                    <li>Animation mixer</li>
+                    <li>Tekstura dhe materiale</li>
+                    <li>Performance optimization</li>
+                </ul>
+                <div class="example-buttons">
+                    <a href="./import-assets/" class="btn btn-primary">Shiko Demo</a>
+                    <a href="./import-assets/index.html" class="btn btn-secondary" target="_blank">Kodi</a>
+                </div>
+            </div>
+
+            <!-- Magic Window (Marker-based AR) -->
+            <div class="example-card">
+                <div class="example-title">
+                    <span class="example-icon ar-icon">🎯</span>
+                    Magic Window
+                </div>
+                <div class="example-description">
+                    AR i bazuar në marker duke përdorur AR.js me marker-in HIRO. Vendos objekte 3D virtuale mbi marker-in fizik që detektohet nga kamera e pajisjes.
+                </div>
+                <ul class="example-features">
+                    <li>Marker-based AR</li>
+                    <li>HIRO marker detection</li>
+                    <li>Camera integration</li>
+                    <li>Real-time tracking</li>
+                    <li>3D object anchoring</li>
+                </ul>
+                <div class="example-buttons">
+                    <a href="./magic-window/" class="btn btn-primary">Shiko Demo</a>
+                    <a href="./magic-window/index.html" class="btn btn-secondary" target="_blank">Kodi</a>
+                </div>
+            </div>
+
+            <!-- Location-based AR -->
+            <div class="example-card">
+                <div class="example-title">
+                    <span class="example-icon ar-icon">📍</span>
+                    Magic Window Locations
+                </div>
+                <div class="example-description">
+                    AR i bazuar në vendodhje që përdor koordinatat GPS dhe kompasun për të vendosur objekte virtuale në lokacione specifike të botës reale.
+                </div>
+                <ul class="example-features">
+                    <li>Location-based AR</li>
+                    <li>GPS integration</li>
+                    <li>Compass orientation</li>
+                    <li>Geographic anchoring</li>
+                    <li>Distance calculation</li>
+                </ul>
+                <div class="example-buttons">
+                    <a href="./magic-window-locations/" class="btn btn-primary">Shiko Demo</a>
+                    <a href="./magic-window-locations/index.html" class="btn btn-secondary" target="_blank">Kodi</a>
+                </div>
+            </div>
+
+            <!-- Surface Tracking AR -->
+            <div class="example-card">
+                <div class="example-title">
+                    <span class="example-icon ar-icon">📱</span>
+                    Magic Window Surface
+                </div>
+                <div class="example-description">
+                    AR me gjurmim sipërfaqeje që gjen sipërfaqe të rrafshëta në botën reale dhe lejon vendosjen e objekteve virtuale mbi to pa nevojë për marker.
+                </div>
+                <ul class="example-features">
+                    <li>Surface tracking</li>
+                    <li>SLAM technology</li>
+                    <li>6DOF tracking</li>
+                    <li>Plane detection</li>
+                    <li>Markerless AR</li>
+                </ul>
+                <div class="example-buttons">
+                    <a href="./magic-window-surface/" class="btn btn-primary">Shiko Demo</a>
+                    <a href="./magic-window-surface/index.html" class="btn btn-secondary" target="_blank">Kodi</a>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 50px; color: white;">
+            <p><strong>CCS601 - Computer Graphics dhe Virtual Reality</strong></p>
+            <p>Universiteti Evropian i Evropës Juglindore (SEEU)</p>
+            <p style="font-size: 0.9rem; margin-top: 20px;">
+                💡 <em>Shënim:</em> AR shembujt kërkojnë HTTPS dhe leje për kamerën. 
+                Disa funksione mund të jenë të kufizuara në simulim për qëllime demonstrimi.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Add some interactive features
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add smooth scrolling
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+
+            // Add card hover effects with JS for better performance
+            const cards = document.querySelectorAll('.example-card');
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-10px) scale(1.02)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0) scale(1)';
+                });
+            });
+
+            // Add loading states for demo links
+            const demoLinks = document.querySelectorAll('.btn-primary');
+            demoLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    const originalText = this.textContent;
+                    this.textContent = 'Duke ngarkuar...';
+                    this.style.pointerEvents = 'none';
+                    
+                    // Reset after a delay (in case the page doesn't navigate)
+                    setTimeout(() => {
+                        this.textContent = originalText;
+                        this.style.pointerEvents = 'auto';
+                    }, 3000);
+                });
+            });
+
+            console.log('Java IX A-Frame Examples loaded');
+        });
+
+        // Add some visual flair
+        function createFloatingElements() {
+            const container = document.querySelector('.container');
+            
+            for (let i = 0; i < 6; i++) {
+                const element = document.createElement('div');
+                element.style.cssText = `
+                    position: absolute;
+                    width: ${Math.random() * 6 + 2}px;
+                    height: ${Math.random() * 6 + 2}px;
+                    background: rgba(255,255,255,0.1);
+                    border-radius: 50%;
+                    pointer-events: none;
+                    top: ${Math.random() * 100}vh;
+                    left: ${Math.random() * 100}vw;
+                    animation: float ${Math.random() * 10 + 10}s linear infinite;
+                    z-index: -1;
+                `;
+                document.body.appendChild(element);
+            }
+        }
+
+        // Add CSS animation for floating elements
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes float {
+                0% {
+                    transform: translateY(0px) rotate(0deg);
+                    opacity: 0;
+                }
+                50% {
+                    opacity: 1;
+                }
+                100% {
+                    transform: translateY(-100vh) rotate(360deg);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Initialize floating elements
+        createFloatingElements();
+
+        // Recreate floating elements periodically
+        setInterval(createFloatingElements, 15000);
+    </script>
+</body>
+</html>

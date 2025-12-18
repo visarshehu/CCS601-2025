@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magic Window Locations - Location-based AR</title>
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        .info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            z-index: 100;
+            max-width: 350px;
+        }
+        .info h3 {
+            margin-top: 0;
+            color: #00d4ff;
+        }
+        .location-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+            max-width: 250px;
+        }
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+            text-align: center;
+        }
+        .controls button {
+            background: #4ecdc4;
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            margin: 0 5px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .controls button:hover {
+            background: #45b7d1;
+        }
+        .gps-status {
+            position: absolute;
+            bottom: 120px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+        }
+        .gps-status.active {
+            background: rgba(0,128,0,0.8);
+        }
+        .gps-status.error {
+            background: rgba(128,0,0,0.8);
+        }
+        .demo-mode {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 1000;
+            text-align: center;
+            max-width: 400px;
+        }
+        .demo-mode button {
+            background: #00ff00;
+            border: none;
+            color: black;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h3>AR me Vendodhje (Location-based)</h3>
+        <p><strong>GPS:</strong> Përdor koordinatat GPS për të pozicionuar objektet</p>
+        <p><strong>Kompasi:</strong> Orientimi bazuar në drejtimin real</p>
+        <p><strong>Demo:</strong> Simulon vendodhje virtuale</p>
+        <p><strong>Real:</strong> Përdor lokacionin aktual</p>
+    </div>
+
+    <div class="location-info" id="locationInfo">
+        <div><strong>📍 Pozicioni:</strong></div>
+        <div id="currentPosition">Duke marrë pozicionin...</div>
+        <div id="deviceOrientation">Orientimi: N/A</div>
+        <div id="nearbyPlaces">Vende afër: 0</div>
+    </div>
+
+    <div class="gps-status" id="gpsStatus">
+        🛰️ Duke kërkuar GPS...
+    </div>
+
+    <div class="controls">
+        <button onclick="toggleDemo()">Demo Mode</button>
+        <button onclick="addVirtualPlace()">Shto Vend</button>
+        <button onclick="showNearby()">Shfaq Afër</button>
+        <button onclick="resetLocation()">Reset</button>
+    </div>
+
+    <div id="demoDialog" class="demo-mode" style="display: block;">
+        <h3>🌍 Location-based AR</h3>
+        <p>Ky demo simulon AR të bazuar në vendodhje.</p>
+        <p><strong>Demo Mode:</strong> Përdor koordinata virtuale</p>
+        <p><strong>Real Mode:</strong> Përdor GPS-in actual (duhet leje)</p>
+        <p><em>Shënim:</em> Për demonstrim, do të përdornim koordinatat e Universitetit Evropian të Evropës Juglindore.</p>
+        <button onclick="startDemo()">Demo Mode</button>
+        <button onclick="requestRealLocation()">Real GPS</button>
+    </div>
+
+    <!-- A-Frame scene me location-based AR -->
+    <a-scene 
+        embedded 
+        arjs="sourceType: webcam; debugUIEnabled: false;"
+        vr-mode-ui="enabled: false"
+        gps-entity-place="simulateLatitude: 41.9981; simulateLongitude: 21.4254;">
+        
+        <a-assets>
+            <!-- Audio për efekte -->
+            <audio id="placeFound" preload="auto">
+                <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEcBDuZ3fXKdSgELIHR9N2ITggTZLrx6aFOEQxOqObxs2EbBjiS2fDJeBEE" type="audio/wav">
+            </audio>
+        </a-assets>
+
+        <!-- Objektet e vendosura në koordinata specifike (Demo) -->
+        
+        <!-- Universiteti (koordinatat kryesore) -->
+        <a-entity 
+            id="university"
+            gps-entity-place="latitude: 41.9981; longitude: 21.4254;"
+            look-at="[gps-camera]">
+            
+            <a-box 
+                width="5" height="10" depth="5" 
+                color="#4ecdc4" 
+                material="metalness: 0.2; roughness: 0.8"
+                position="0 5 0"
+                animation="property: rotation; to: 0 360 0; dur: 10000; loop: true; easing: linear">
+            </a-box>
+            
+            <a-text 
+                value="SEEU Campus" 
+                position="0 12 0" 
+                align="center" 
+                color="#ffffff" 
+                width="20"
+                look-at="[gps-camera]"
+                background="color: rgba(0,0,0,0.8); width: 25; height: auto">
+            </a-text>
+
+            <!-- Informacioni i detajuar -->
+            <a-text 
+                value="Universiteti Evropian i Evropës Juglindore\nTetovë, Maqedoni e Veriut" 
+                position="0 8 0" 
+                align="center" 
+                color="#ffff00" 
+                width="15"
+                look-at="[gps-camera]">
+            </a-text>
+
+            <!-- Ikona GPS -->
+            <a-cone 
+                position="0 15 0" 
+                height="2" radius-bottom="1" 
+                color="#00ff00" 
+                animation__float="property: position; to: 0 17 0; dur: 2000; direction: alternate; loop: true; easing: easeInOutSine">
+            </a-cone>
+        </a-entity>
+
+        <!-- Biblioteka (100m në veri) -->
+        <a-entity 
+            id="library"
+            gps-entity-place="latitude: 41.9990; longitude: 21.4254;">
+            
+            <a-cylinder 
+                height="6" radius="3" 
+                color="#ff6b6b" 
+                material="metalness: 0.3; roughness: 0.6"
+                position="0 3 0">
+            </a-cylinder>
+            
+            <a-text 
+                value="📚 Biblioteka" 
+                position="0 7 0" 
+                align="center" 
+                color="#ffffff" 
+                width="15"
+                look-at="[gps-camera]"
+                background="color: rgba(0,0,0,0.8)">
+            </a-text>
+
+            <!-- Librat që fluturojnë rreth bibliotekës -->
+            <a-box width="0.3" height="0.2" depth="0.05" color="#8B4513" position="2 4 0"
+                   animation="property: rotation; to: 0 360 0; dur: 3000; loop: true; easing: linear">
+            </a-box>
+            <a-box width="0.3" height="0.2" depth="0.05" color="#654321" position="0 4 2"
+                   animation="property: rotation; to: 0 360 0; dur: 3000; loop: true; easing: linear; delay: 1000">
+            </a-box>
+            <a-box width="0.3" height="0.2" depth="0.05" color="#A0522D" position="-2 4 0"
+                   animation="property: rotation; to: 0 360 0; dur: 3000; loop: true; easing: linear; delay: 2000">
+            </a-box>
+        </a-entity>
+
+        <!-- Mensa/Kafeneja (50m në juglindje) -->
+        <a-entity 
+            id="cafeteria"
+            gps-entity-place="latitude: 41.9976; longitude: 21.4260;">
+            
+            <a-sphere 
+                radius="2" 
+                color="#ffe66d" 
+                material="metalness: 0.1; roughness: 0.9"
+                position="0 2 0"
+                animation__pulse="property: scale; to: 1.1 1.1 1.1; dur: 1500; direction: alternate; loop: true; easing: easeInOutSine">
+            </a-sphere>
+            
+            <a-text 
+                value="☕ Kafeneja" 
+                position="0 5 0" 
+                align="center" 
+                color="#8B4513" 
+                width="12"
+                look-at="[gps-camera]"
+                background="color: rgba(255,255,255,0.8)">
+            </a-text>
+
+            <!-- Avulli i kafesë -->
+            <a-entity id="steam">
+                <a-sphere radius="0.1" color="#ffffff" position="0 3 0" material="opacity: 0.6; transparent: true"
+                         animation="property: position; to: 0 5 0; dur: 2000; loop: true; easing: easeOutQuad"
+                         animation__fade="property: material.opacity; to: 0; dur: 2000; loop: true; easing: easeOutQuad">
+                </a-sphere>
+                <a-sphere radius="0.08" color="#ffffff" position="0.2 3 0" material="opacity: 0.5; transparent: true"
+                         animation="property: position; to: 0.2 4.8 0; dur: 2500; loop: true; easing: easeOutQuad; delay: 500"
+                         animation__fade="property: material.opacity; to: 0; dur: 2500; loop: true; easing: easeOutQuad; delay: 500">
+                </a-sphere>
+            </a-entity>
+        </a-entity>
+
+        <!-- Laboratori IT (80m në perëndim) -->
+        <a-entity 
+            id="itlab"
+            gps-entity-place="latitude: 41.9981; longitude: 21.4246;">
+            
+            <a-entity id="computer-lab">
+                <!-- Ndërtesa e laboratorit -->
+                <a-box 
+                    width="4" height="3" depth="4" 
+                    color="#a8e6cf" 
+                    material="metalness: 0.4; roughness: 0.3"
+                    position="0 1.5 0">
+                </a-box>
+                
+                <!-- Kompjuterët -->
+                <a-box width="0.3" height="0.2" depth="0.02" color="#000000" position="-1 2.5 1.8"></a-box>
+                <a-box width="0.3" height="0.2" depth="0.02" color="#000000" position="0 2.5 1.8"></a-box>
+                <a-box width="0.3" height="0.2" depth="0.02" color="#000000" position="1 2.5 1.8"></a-box>
+                
+                <!-- Kodi që "rrjedh" -->
+                <a-text 
+                    value="01010101\n11001100\n10101010" 
+                    position="0 4 0" 
+                    align="center" 
+                    color="#00ff00" 
+                    width="8"
+                    animation="property: rotation; to: 0 360 0; dur: 4000; loop: true; easing: linear">
+                </a-text>
+            </a-entity>
+            
+            <a-text 
+                value="💻 Laboratori IT" 
+                position="0 5 0" 
+                align="center" 
+                color="#ffffff" 
+                width="15"
+                look-at="[gps-camera]"
+                background="color: rgba(0,0,0,0.8)">
+            </a-text>
+        </a-entity>
+
+        <!-- Stadiumi (200m në jug) -->
+        <a-entity 
+            id="stadium"
+            gps-entity-place="latitude: 41.9963; longitude: 21.4254;">
+            
+            <a-ring 
+                radius-inner="8" radius-outer="10" 
+                color="#90EE90" 
+                rotation="-90 0 0"
+                position="0 0.1 0">
+            </a-ring>
+            
+            <a-sphere 
+                radius="0.3" 
+                color="#ffffff" 
+                position="0 1 0"
+                animation="property: position; to: 0 8 0; dur: 2000; direction: alternate; loop: true; easing: easeInOutQuad">
+            </a-sphere>
+            
+            <a-text 
+                value="⚽ Stadiumi" 
+                position="0 12 0" 
+                align="center" 
+                color="#ffffff" 
+                width="20"
+                look-at="[gps-camera]"
+                background="color: rgba(0,0,0,0.8)">
+            </a-text>
+        </a-entity>
+
+        <!-- Kamera GPS -->
+        <a-camera 
+            id="gps-camera"
+            gps-camera="simulateLatitude: 41.9981; simulateLongitude: 21.4254; simulateAltitude: 300;"
+            rotation-reader
+            look-controls-enabled="false" 
+            wasd-controls-enabled="false">
+        </a-camera>
+    </a-scene>
+
+    <script>
+        let demoMode = true;
+        let currentPosition = { lat: 41.9981, lng: 21.4254 }; // SEEU coordinates
+        let watchId = null;
+        let virtualPlaces = [];
+
+        // Koordinatat e vendeve të njohura në Tetovë/SEEU
+        const knownPlaces = [
+            { name: "SEEU Campus", lat: 41.9981, lng: 21.4254, type: "university" },
+            { name: "Biblioteka", lat: 41.9990, lng: 21.4254, type: "library" },
+            { name: "Kafeneja", lat: 41.9976, lng: 21.4260, type: "cafe" },
+            { name: "Laboratori IT", lat: 41.9981, lng: 21.4246, type: "lab" },
+            { name: "Stadiumi", lat: 41.9963, lng: 21.4254, type: "sport" },
+            { name: "Qyteti i Tetovës", lat: 42.0086, lng: 21.2847, type: "city" },
+            { name: "Kalaja e Tetovës", lat: 42.0069, lng: 21.2914, type: "historical" }
+        ];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Location-based AR initialized');
+            updateLocationInfo();
+            
+            // Simulimi i orientation events
+            if (demoMode) {
+                simulateOrientation();
+            }
+        });
+
+        function startDemo() {
+            demoMode = true;
+            document.getElementById('demoDialog').style.display = 'none';
+            document.getElementById('gpsStatus').innerHTML = '🔄 Demo Mode - Simulim GPS';
+            document.getElementById('gpsStatus').className = 'gps-status active';
+            
+            // Simulimi i pozicionit
+            currentPosition = { lat: 41.9981, lng: 21.4254 };
+            updateLocationInfo();
+            
+            console.log('Demo mode started at SEEU coordinates');
+        }
+
+        function requestRealLocation() {
+            if (!navigator.geolocation) {
+                alert('Geolocation nuk mbështetet nga shfletuesi juaj');
+                startDemo();
+                return;
+            }
+
+            demoMode = false;
+            document.getElementById('demoDialog').style.display = 'none';
+            document.getElementById('gpsStatus').innerHTML = '🛰️ Duke kërkuar pozicionin real...';
+            
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 60000
+            };
+
+            watchId = navigator.geolocation.watchPosition(
+                (position) => {
+                    currentPosition = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    
+                    document.getElementById('gpsStatus').innerHTML = '✅ GPS aktiv';
+                    document.getElementById('gpsStatus').className = 'gps-status active';
+                    
+                    updateLocationInfo();
+                    console.log('Real GPS position:', currentPosition);
+                },
+                (error) => {
+                    console.error('GPS Error:', error);
+                    document.getElementById('gpsStatus').innerHTML = '❌ Gabim në GPS - duke kaluar në Demo';
+                    document.getElementById('gpsStatus').className = 'gps-status error';
+                    
+                    setTimeout(() => {
+                        startDemo();
+                    }, 2000);
+                },
+                options
+            );
+        }
+
+        function updateLocationInfo() {
+            const locationInfo = document.getElementById('currentPosition');
+            const orientationInfo = document.getElementById('deviceOrientation');
+            const nearbyInfo = document.getElementById('nearbyPlaces');
+            
+            locationInfo.innerHTML = `Lat: ${currentPosition.lat.toFixed(6)}<br>Lng: ${currentPosition.lng.toFixed(6)}`;
+            
+            // Llogaritja e vendeve afër
+            const nearby = calculateNearbyPlaces();
+            nearbyInfo.innerHTML = `Vende afër: ${nearby.length}`;
+            
+            // Shfaqja e vendeve të afërta
+            if (nearby.length > 0) {
+                const nearestPlace = nearby[0];
+                orientationInfo.innerHTML = `Më afër: ${nearestPlace.name} (${nearestPlace.distance}m)`;
+            }
+        }
+
+        function calculateNearbyPlaces() {
+            const nearby = [];
+            
+            knownPlaces.forEach(place => {
+                const distance = calculateDistance(
+                    currentPosition.lat, currentPosition.lng,
+                    place.lat, place.lng
+                );
+                
+                if (distance < 1000) { // 1km radius
+                    nearby.push({
+                        ...place,
+                        distance: Math.round(distance)
+                    });
+                }
+            });
+            
+            return nearby.sort((a, b) => a.distance - b.distance);
+        }
+
+        function calculateDistance(lat1, lng1, lat2, lng2) {
+            const R = 6371000; // Rrezja e Tokës në metra
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                    Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        function simulateOrientation() {
+            if (!demoMode) return;
+            
+            let angle = 0;
+            setInterval(() => {
+                angle += 1;
+                const orientationInfo = document.getElementById('deviceOrientation');
+                const direction = getCompassDirection(angle);
+                orientationInfo.innerHTML = `Orientimi: ${direction} (${angle}°)`;
+            }, 100);
+        }
+
+        function getCompassDirection(angle) {
+            const directions = ['V', 'VV', 'V', 'VP', 'P', 'JP', 'J', 'JL', 'L', 'VL'];
+            const index = Math.round(angle / 36) % directions.length;
+            return directions[index];
+        }
+
+        function toggleDemo() {
+            if (demoMode) {
+                requestRealLocation();
+            } else {
+                if (watchId) {
+                    navigator.geolocation.clearWatch(watchId);
+                }
+                startDemo();
+            }
+        }
+
+        function addVirtualPlace() {
+            const name = prompt('Emri i vendit virtual:');
+            if (!name) return;
+            
+            // Shto një vend virtual 50m larg pozicionit aktual
+            const offsetLat = currentPosition.lat + (Math.random() - 0.5) * 0.0009; // ~50m
+            const offsetLng = currentPosition.lng + (Math.random() - 0.5) * 0.0009;
+            
+            const newPlace = {
+                name: name,
+                lat: offsetLat,
+                lng: offsetLng,
+                type: 'virtual',
+                id: 'virtual_' + Date.now()
+            };
+            
+            virtualPlaces.push(newPlace);
+            createVirtualPlaceEntity(newPlace);
+            
+            console.log('Virtual place added:', newPlace);
+        }
+
+        function createVirtualPlaceEntity(place) {
+            const scene = document.querySelector('a-scene');
+            const entity = document.createElement('a-entity');
+            
+            entity.setAttribute('id', place.id);
+            entity.setAttribute('gps-entity-place', `latitude: ${place.lat}; longitude: ${place.lng}`);
+            
+            entity.innerHTML = `
+                <a-cone height="3" radius-bottom="1" color="#ff00ff" position="0 1.5 0"
+                       animation="property: rotation; to: 0 360 0; dur: 3000; loop: true; easing: linear">
+                </a-cone>
+                <a-text value="${place.name}" position="0 4 0" align="center" color="#ffffff" width="12"
+                       look-at="[gps-camera]" background="color: rgba(255,0,255,0.8)">
+                </a-text>
+            `;
+            
+            scene.appendChild(entity);
+        }
+
+        function showNearby() {
+            const nearby = calculateNearbyPlaces();
+            let message = 'Vende afër jush:\n\n';
+            
+            nearby.forEach((place, index) => {
+                if (index < 5) { // Shfaq vetëm 5 vendet më të afërta
+                    message += `${place.name}: ${place.distance}m\n`;
+                }
+            });
+            
+            if (nearby.length === 0) {
+                message = 'Nuk ka vende të njohura në afërsi.';
+            }
+            
+            alert(message);
+        }
+
+        function resetLocation() {
+            // Rivendos pozicionin në koordinatat e SEEU-së
+            currentPosition = { lat: 41.9981, lng: 21.4254 };
+            
+            // Largo vendet virtuale
+            virtualPlaces.forEach(place => {
+                const element = document.getElementById(place.id);
+                if (element) {
+                    element.remove();
+                }
+            });
+            virtualPlaces = [];
+            
+            updateLocationInfo();
+            console.log('Location reset to SEEU coordinates');
+        }
+
+        // Custom component për GPS entity
+        AFRAME.registerComponent('gps-entity-place', {
+            schema: {
+                latitude: { type: 'number' },
+                longitude: { type: 'number' }
+            },
+            init: function() {
+                console.log('GPS entity placed at:', this.data.latitude, this.data.longitude);
+            }
+        });
+
+        // Component për të lexuar rotation
+        AFRAME.registerComponent('rotation-reader', {
+            tick: function () {
+                if (this.el.object3D) {
+                    const rotation = this.el.object3D.rotation;
+                    // Mund të përdoret për debug orientation
+                }
+            }
+        });
+
+        // Cleanup kur page unload
+        window.addEventListener('beforeunload', function() {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+            }
+        });
+
+        // Orientation handling për mobile
+        if (window.DeviceOrientationEvent) {
+            window.addEventListener('deviceorientation', function(event) {
+                if (!demoMode) {
+                    const orientationInfo = document.getElementById('deviceOrientation');
+                    const alpha = Math.round(event.alpha || 0);
+                    const direction = getCompassDirection(alpha);
+                    orientationInfo.innerHTML = `Orientimi: ${direction} (${alpha}°)`;
+                }
+            });
+        }
+    </script>
+</body>
+</html>

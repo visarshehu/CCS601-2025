@@ -51,7 +51,15 @@ floor.position.y = -2;
 floor.receiveShadow = true;
 scene.add(floor);
 
+const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
+const boxMaterial = new THREE.MeshLambertMaterial({ color: 0x0000ff });
+const box = new THREE.Mesh(boxGeometry, boxMaterial);
+box.position.set(3, 0.5, 0);
+scene.add(box);
 const gui = new GUI();
+
+gui.add(box.rotation,'x',0,Math.PI*2).name('Rotate X');
+gui.addColor(box.material, 'color').name('Box Color');
 
 gui.addColor(sphereParams, 'color').name('Color').onChange((value) => {
     sphere.material.color.setHex(value);
@@ -60,6 +68,7 @@ gui.addColor(sphereParams, 'color').name('Color').onChange((value) => {
 gui.add(sphereParams, 'shininess', 0, 100).name('Shininess').onChange((value) => {
     sphere.material.shininess = value;
 });
+
 
 gui.add(sphereParams, 'widthSegments', 3, 32, 1).name('Width Segments').onChange((value) => {
     updateSphereGeometry();
